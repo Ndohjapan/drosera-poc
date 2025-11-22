@@ -29,7 +29,14 @@ contract WhaleTrap is ITrap {
      * @return responsePayload Data to pass to response contract
      */
     function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {
-        if (data.length == 0) {
+        // Handle empty data or dry run scenarios
+        if (data.length == 0 || data[0].length == 0) {
+            return (false, "");
+        }
+
+        // Check if data has minimum length for our expected structure
+        // address (20 bytes) + uint256 (32 bytes) + uint8 (32 bytes padded) = ~96 bytes minimum
+        if (data[0].length < 96) {
             return (false, "");
         }
 
