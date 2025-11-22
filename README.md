@@ -218,6 +218,20 @@ drosera apply
 
 ---
 
+## ✅ Deployed Contracts (Hoodi Testnet)
+
+- **AlertVault Contract**: `0x8053f1B795668E4Fd5CBe95E0841839bF2900414`
+  - [View on Explorer](https://hoodi.etherscan.io/address/0x8053f1B795668E4Fd5CBe95E0841839bF2900414)
+- **WhaleTrap Address**: `0x1a389eaa28058eb5FA906F97F495E69e527507b1`
+  - [Deployment Tx](https://hoodi.etherscan.io/tx/0x98e825a7cc98fc75ec7ebde62b07a1b1b8450c853aa17b931cff5b7f0aac24d5)
+- **Deployer Wallet**: `0xc93bf33438c9c636fc49cafe1086c2c424507a15`
+
+### Test Alert Transaction
+- **Example Alert Tx**: `0xf9354052be989db85cd245f5ec36b9c836d90be3341e3e302f7aaa86964ac5e1`
+  - [View on Explorer](https://hoodi.etherscan.io/tx/0xf9354052be989db85cd245f5ec36b9c836d90be3341e3e302f7aaa86964ac5e1)
+
+---
+
 ## 🧪 Testing
 
 ### Health Check
