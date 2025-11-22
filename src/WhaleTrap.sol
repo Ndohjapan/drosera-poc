@@ -15,7 +15,7 @@ contract WhaleTrap is ITrap {
      * @dev For POC, returns empty - actual metrics passed via shouldRespond
      * @return bytes Empty payload
      */
-    function collect() external pure returns (bytes memory) {
+    function collect() external view returns (bytes memory) {
         // For POC: Drosera node will pass actual metrics directly to shouldRespond
         // In production, this could gather on-chain state
         return "";
@@ -28,7 +28,7 @@ contract WhaleTrap is ITrap {
      * @return shouldRespond Whether to trigger response
      * @return responsePayload Data to pass to response contract
      */
-    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {
+    function shouldRespond(bytes[] calldata data) external view returns (bool, bytes memory) {
         if (data.length == 0) {
             return (false, "");
         }
