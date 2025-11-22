@@ -1,0 +1,22 @@
+{
+  "name": "obie-backend",
+  "version": "1.0.0",
+  "description": "OBIE Whale Surge Detection Backend",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ethers": "^6.9.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "body-parser": "^1.20.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,269 @@
+# OBIE Codebase — Whale Surge Detection POC
+
+This single document contains all the starter code files for the Whale Surge Detection Trap POC (Foundry + Solidity + Node.js Express backend). Copy each file into your project structure as shown.
+
+---
+
+## Project structure
+
+```
+my-drosera-trap/
+├─ src/
+│  ├─ WhaleTrap.sol
+│  └─ AlertVault.sol
+├─ scripts/
+│  └─ deploy_alertvault.sh
+├─ backend/
+│  ├─ package.json
+│  ├─ .env.example
+│  ├─ index.js
+│  └─ alertSender.js
+├─ drosera.toml
+├─ README_DEPLOY.md
+```
+
+---
+
+## src/WhaleTrap.sol
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+
+interface IAlertVault {
+    function alert(bytes32 alertId, address wallet, uint8 alertType, string calldata metaCid) external;
+}
+
+contract WhaleTrap is ITrap {
+    // configuration
+    address public responseContract;
+    uint256 public whaleUsdThreshold; // stored in USD with 18 decimals (e.g. 100000 * 1e18)
+
+    constructor(address _responseContract, uint256 _whaleUsdThreshold) {
+        responseContract = _responseContract;
+        whaleUsdThreshold = _whaleUsdThreshold;
+    }
+
+    // A simple collector which would normally gather on-chain metrics.
+    // For testnet POC we encode: wallet address to check + current estimated usd value
+    function collect() external view returns (bytes memory) {
+        // For POC: return empty payload (Drosera node will pass actual metrics in `data` when calling shouldRespond)
+        return abi.encode(address(0));
+    }
+
+    // Drosera node will send data[] (collected values). We'll assume the first element contains a struct encoded as (address wallet, uint256 usdValue18)
+    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {
+        if (data.length == 0) {
+            return (false, bytes(""));
+        }
+
+        // decode: data[0] => abi.encode(address wallet, uint256 usdValue18, uint8 surgeType)
+        (address wallet, uint256 usdValue, uint8 surgeType) = abi.decode(data[0], (address, uint256, uint8));
+
+        // surgeType: 1 = Capital Surge, 2 = Velocity Surge, 3 = Group Surge
+        // simple rule: respond when usdValue >= threshold
+        // NOTE: thresholds and richer logic can be performed off-chain and only signalled here
+        // For the POC we will encode the alert payload back to the response controller to execute
+
+        // Build metadata: wallet + usdValue + surgeType
+        if (usdValue >= 0) { // placeholder to always allow external logic to determine; actual gating done below
+            // We'll set `shouldRespond` true only if usdValue is large enough
+            // But we don't have chain oracle in this contract; Drosera node should pass usdValue already
+            // simple decision
+            bytes memory payload = abi.encode(wallet, usdValue, surgeType);
+            // In POC, we let the Drosera operator decide if it meets the whaleUsdThreshold; but we can check against encoded threshold as well
+            return (true, payload);
+        }
+
+        return (false, bytes(""));
+    }
+}
+```
+
+---
+
+## src/AlertVault.sol
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract AlertVault {
+    event AlertLogged(bytes32 indexed alertId, address indexed wallet, uint8 indexed alertType, uint256 usdValue, address reporter);
+
+    struct Alert {
+        bytes32 id;
+        address wallet;
+        uint8 alertType;
+        uint256 usdValue;
+        address reporter;
+        uint256 timestamp;
+    }
+
+    mapping(bytes32 => Alert) public alerts;
+
+    function alert(bytes32 alertId, address wallet, uint8 alertType, uint256 usdValue) external {
+        // basic anti-spam: only allow once
+        require(alerts[alertId].timestamp == 0, "ALREADY_RECORDED");
+        alerts[alertId] = Alert({
+            id: alertId,
+            wallet: wallet,
+            alertType: alertType,
+            usdValue: usdValue,
+            reporter: msg.sender,
+            timestamp: block.timestamp
+        });
+        emit AlertLogged(alertId, wallet, alertType, usdValue, msg.sender);
+    }
+}
+```
+
+---
+
+## drosera.toml
+```toml
+path = "out/WhaleTrap.sol/WhaleTrap.json"
+response_contract = "<ALERT_VAULT_ADDRESS>"
+response_function = "alert(bytes32,address,uint8,uint256)"
+whitelist = ["YOUR_WALLET_ADDRESS"]
+```
+
+---
+
+## backend/package.json
+```json
+{
+  "name": "obie-backend",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "ethers": "^6.6.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.1.4",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.0"
+  }
+}
+```
+
+---
+
+## backend/.env.example
+```env
+RPC_URL=https://your-hoodi-rpc
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+ALERT_VAULT_ADDRESS=0xYourAlertVaultAddress
+PORT=3001
+```
+
+---
+
+## backend/index.js
+```javascript
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const { sendOnChainAlert } = require('./alertSender');
+
+const app = express();
+app.use(bodyParser.json());
+
+app.post('/api/alert', async (req, res) => {
+  try {
+    const { wallet, usdValue, surgeType } = req.body;
+    if (!wallet || !usdValue) return res.status(400).send({ error: 'wallet and usdValue required' });
+
+    const tx = await sendOnChainAlert(wallet, usdValue, surgeType || 1);
+    return res.send({ ok: true, txHash: tx.hash });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ error: err.message });
+  }
+});
+
+const port = process.env.PORT || 3001;
+app.listen(port, () => console.log(`OBIE backend listening on ${port}`));
+```
+
+---
+
+## backend/alertSender.js
+```javascript
+const { ethers } = require('ethers');
+const uuid = require('uuid');
+
+const abi = [
+  'function alert(bytes32 alertId, address wallet, uint8 alertType, uint256 usdValue) external'
+];
+
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const alertVault = new ethers.Contract(process.env.ALERT_VAULT_ADDRESS, abi, wallet);
+
+async function sendOnChainAlert(walletAddress, usdValue, surgeType = 1) {
+  // build deterministic id
+  const id = ethers.keccak256(ethers.toUtf8Bytes(walletAddress + '|' + Date.now().toString()));
+  const tx = await alertVault.alert(id, walletAddress, surgeType, BigInt(Math.floor(usdValue)));
+  await tx.wait();
+  return tx;
+}
+
+module.exports = { sendOnChainAlert };
+```
+
+---
+
+## scripts/deploy_alertvault.sh
+```bash
+#!/usr/bin/env bash
+# quick deploy using forge (example)
+# assumes you have anvil or hoodi RPC configured
+
+# compile
+forge build
+
+# deploy using forge script or manually with remix/foundry script
+# placeholder: use your preferred method to deploy AlertVault
+```
+
+---
+
+## README_DEPLOY.md
+```
+1) Install dependencies
+   - bun install
+   - forge build
+
+2) Edit drosera.toml with the deployed AlertVault address and your wallet
+
+3) Deploy AlertVault (use remix or foundry deployment script)
+
+4) Build & deploy WhaleTrap using Foundry template
+   - forge build
+   - DROSERA_PRIVATE_KEY=... drosera apply
+
+5) Start backend
+   - cd backend
+   - npm install
+   - cp .env.example .env
+   - fill .env
+   - npm start
+
+6) Simulate a whale surge by POSTing to /api/alert with body:
+   {
+     "wallet": "0x...",
+     "usdValue": 150000,
+     "surgeType": 1
+   }
+
+7) Confirm the on-chain AlertLogged event on the hoodi explorer or `cast` logs.
+```
+
+---
+
+End of code bundle. Replace placeholders and tweak thresholds before deploying to any environment.

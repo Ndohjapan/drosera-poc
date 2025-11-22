@@ -1,0 +1,8 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+
+[rpc_endpoints]
+hoodi = "https://eth-hoodi.g.alchemy.com/v2/6rtLdAW8i0XoClsT8xIsi"
