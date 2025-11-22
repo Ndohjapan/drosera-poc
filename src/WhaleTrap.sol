@@ -28,7 +28,7 @@ contract WhaleTrap is ITrap {
      * @return shouldRespond Whether to trigger response
      * @return responsePayload Data to pass to response contract
      */
-    function shouldRespond(bytes[] calldata data) external view returns (bool, bytes memory) {
+    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {
         if (data.length == 0) {
             return (false, "");
         }
