@@ -22,15 +22,23 @@ This project implements a **Capital Surge Detection** system that:
 my-drosera-trap/
 ├── src/
 │   ├── AlertVault.sol       # On-chain alert storage contract
-│   └── WhaleTrap.sol         # Drosera trap implementation
+│   ├── WhaleTrap.sol         # Drosera trap implementation
+│   └── interfaces/
+│       └── ITrap.sol         # ITrap interface
 ├── backend/
 │   ├── index.js              # Express server
 │   ├── blockMonitor.js       # Blockchain monitoring logic
 │   ├── alertSender.js        # Send alerts to AlertVault
 │   ├── package.json          # Node.js dependencies
 │   └── .env.example          # Environment configuration template
+├── logs/                     # PM2 log files (auto-generated)
+│   ├── out.log               # stdout logs
+│   ├── err.log               # error logs
+│   └── combined.log          # all logs
 ├── scripts/
 │   └── (deployment scripts)
+├── ecosystem.config.js       # PM2 configuration
+├── setup-pm2.sh              # PM2 setup script
 ├── foundry.toml              # Foundry configuration
 ├── drosera.toml              # Drosera trap configuration
 └── README.md                 # This file
@@ -149,28 +157,49 @@ WHALE_THRESHOLD_USD=100000
 PORT=3001
 ```
 
-#### 7️⃣ **Start Backend**
+#### 7️⃣ **Start Backend with PM2** (Recommended)
+
+PM2 is a production process manager that keeps your app running and provides easy log access.
 
 ```bash
-npm start
+# Run the setup script (one-time setup)
+chmod +x setup-pm2.sh
+./setup-pm2.sh
+```
+
+**Manual PM2 Setup (Alternative):**
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Stop any existing node processes
+pkill -f "node.*index.js"
+
+# Create logs directory
+mkdir -p logs
+
+# Install backend dependencies
+cd backend && npm install && cd ..
+
+# Start with PM2
+pm2 start ecosystem.config.js
+
+# Save process list (persist across reboots)
+pm2 save
+
+# Enable startup on system reboot
+pm2 startup
+# Follow the instructions shown
 ```
 
 Expected output:
 ```
-═══════════════════════════════════════════════════════
-🐋 OBIE - Whale Surge Detection Backend
-═══════════════════════════════════════════════════════
-🚀 Server running on port 3001
-📊 Health check: http://localhost:3001/health
-📡 RPC Endpoint: https://eth-hoodi.g.alchemy.com/v2/...
-💰 Whale Threshold: $100000
-
-✅ AlertVault deployed at: 0x1234...
-👀 Starting blockchain monitor...
-
-✅ Blockchain monitor started
-   Starting from block: 12345
-   Polling interval: 5000ms
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ whale-detector     │ fork     │ 0    │ online    │ 0%       │ 45.2mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
 ```
 
 #### 8️⃣ **Test Alert System**
@@ -252,12 +281,62 @@ curl -X POST http://localhost:3001/api/alert \
   }'
 ```
 
-### Monitor Logs
+### View Logs with PM2
 
 ```bash
-# Backend logs
-tail -f ~/my-drosera-trap/backend/nohup.out
+# View live logs (tail -f style)
+pm2 logs whale-detector
 
+# View last 100 lines
+pm2 logs whale-detector --lines 100
+
+# View only error logs
+pm2 logs whale-detector --err
+
+# View log files directly
+tail -f logs/out.log     # stdout logs
+tail -f logs/err.log     # error logs
+tail -f logs/combined.log # all logs
+```
+
+### PM2 Management Commands
+
+```bash
+# View app status
+pm2 status
+
+# Restart app (after code changes)
+pm2 restart whale-detector
+
+# Stop app
+pm2 stop whale-detector
+
+# Start app
+pm2 start whale-detector
+
+# Monitor resources (CPU, memory)
+pm2 monit
+
+# View detailed info
+pm2 info whale-detector
+
+# Delete from PM2
+pm2 delete whale-detector
+```
+
+### Quick Update & Restart Script
+
+```bash
+# Pull latest code and restart
+cd ~/whale-detector-poc
+git pull origin master
+pm2 restart whale-detector
+pm2 logs whale-detector
+```
+
+### Monitor Drosera Logs
+
+```bash
 # Drosera node logs
 journalctl -u drosera -f
 ```

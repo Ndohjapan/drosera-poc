@@ -27,6 +27,13 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# PM2
+.pm2/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
 # OS files
 .DS_Store
 Thumbs.db
