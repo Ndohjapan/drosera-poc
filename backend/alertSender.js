@@ -6,8 +6,6 @@ const abi = [
   'event AlertLogged(bytes32 indexed alertId, address indexed wallet, uint8 indexed alertType, uint256 usdValue, address reporter)'
 ];
 
-console.log("PRIVATE KEY:", process.env.PRIVATE_KEY);
-
 // Initialize provider and wallet
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -21,6 +19,9 @@ const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
  */
 async function sendOnChainAlert(walletAddress, usdValue, surgeType = 1) {
   try {
+    // Ensure wallet address is properly formatted (checksum)
+    const checksummedAddress = ethers.getAddress(walletAddress);
+    
     // Create contract instance
     const alertVault = new ethers.Contract(
       process.env.ALERT_VAULT_ADDRESS, 
@@ -30,7 +31,7 @@ async function sendOnChainAlert(walletAddress, usdValue, surgeType = 1) {
 
     // Generate unique alert ID using keccak256 hash
     const alertId = ethers.keccak256(
-      ethers.toUtf8Bytes(`${walletAddress}|${Date.now()}|${surgeType}`)
+      ethers.toUtf8Bytes(`${checksummedAddress}|${Date.now()}|${surgeType}`)
     );
     
     // Convert USD value to BigInt with 18 decimals precision
@@ -41,12 +42,12 @@ async function sendOnChainAlert(walletAddress, usdValue, surgeType = 1) {
     console.log('📤 Sending alert to AlertVault contract...');
     console.log(`   Contract: ${process.env.ALERT_VAULT_ADDRESS}`);
     console.log(`   Alert ID: ${alertId}`);
-    console.log(`   Wallet: ${walletAddress}`);
+    console.log(`   Wallet: ${checksummedAddress}`);
     console.log(`   USD Value: $${usdValue.toFixed(2)}`);
     console.log(`   Surge Type: ${getSurgeTypeName(surgeType)}`);
     
     // Send transaction to blockchain
-    const tx = await alertVault.alert(alertId, walletAddress, surgeType, usdValueBigInt);
+    const tx = await alertVault.alert(alertId, checksummedAddress, surgeType, usdValueBigInt);
     console.log(`   TX Hash: ${tx.hash}`);
     console.log('   ⏳ Waiting for confirmation...');
     
