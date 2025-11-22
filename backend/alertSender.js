@@ -20,7 +20,8 @@ const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 async function sendOnChainAlert(walletAddress, usdValue, surgeType = 1) {
   try {
     // Ensure wallet address is properly formatted (checksum)
-    const checksummedAddress = ethers.getAddress(walletAddress);
+    // Use toLowerCase() first to avoid checksum validation errors
+    const checksummedAddress = ethers.getAddress(walletAddress.toLowerCase());
     
     // Create contract instance
     const alertVault = new ethers.Contract(
