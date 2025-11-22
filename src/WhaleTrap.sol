@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+import "./interfaces/ITrap.sol";
 
 /**
  * @title WhaleTrap

@@ -66,11 +66,30 @@ curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
-#### 3️⃣ **Install Drosera Contracts**
+#### 3️⃣ **Install Drosera Contracts (Choose One Method)**
 
+The project now includes a local ITrap interface, so you can skip this step if you encounter issues.
+
+**Method A: Try forge install first (may require auth):**
 ```bash
-forge install drosera-network/drosera-contracts
+forge install drosera-network/drosera-contracts --no-commit
 ```
+
+**Method B: If Method A fails, use the helper script:**
+```bash
+chmod +x scripts/install_itrap.sh
+./scripts/install_itrap.sh
+```
+
+**Method C: Manual download:**
+```bash
+mkdir -p lib/drosera-contracts/src/interfaces
+curl -L -o lib/drosera-contracts/src/interfaces/ITrap.sol \
+  https://raw.githubusercontent.com/drosera-network/drosera-contracts/main/src/interfaces/ITrap.sol
+```
+
+**Method D: Use local interface (already included):**
+The project includes `src/interfaces/ITrap.sol` - no download needed!
 
 #### 4️⃣ **Compile Smart Contracts**
 
