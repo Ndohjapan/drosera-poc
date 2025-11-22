@@ -24,7 +24,7 @@ min_number_of_operators = 1
 max_number_of_operators = 2
 
 # Number of recent blocks to sample for detection
-block_sample_size = 10
+block_sample_size = 1
 
 # Make this a private trap (only whitelisted addresses can use)
 private_trap = true
