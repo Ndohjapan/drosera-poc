@@ -112,7 +112,9 @@ Using Foundry:
 ```bash
 forge create src/AlertVault.sol:AlertVault \
   --rpc-url https://eth-hoodi.g.alchemy.com/v2/6rtLdAW8i0XoClsT8xIsi \
-  --private-key YOUR_PRIVATE_KEY
+  --private-key YOUR_PRIVATE_KEY \
+  --broadcast \
+  --legacy
 ```
 
 **Save the deployed contract address!** You'll need it for the next steps.
@@ -122,6 +124,11 @@ Example output:
 Deployer: 0xc93bf33438c9c636fc49cafe1086c2c424507a15
 Deployed to: 0x1234567890abcdef1234567890abcdef12345678
 Transaction hash: 0xabc...
+
+Deployer: 0xc93BF33438C9c636fC49caFe1086C2C424507A15
+Deployed to: 0x8053f1B795668E4Fd5CBe95E0841839bF2900414
+Transaction hash: 0x5ff33b56394f983bbe0fd9a0520eb998ce20ceaaa95ed4af390208519e0bdb35
+
 ```
 
 #### 6️⃣ **Configure Backend**
